@@ -1,4 +1,4 @@
-# Tool for 3D printed concreted analysis
+# Tool for 3D printed concrete analysis
 Tool for real-time monitoring of concrete 3D printing. It combines a fully-convolutional neural network coded in Python (3.7.8) using Tensorflow (2.1.0) for feature extraction (detection of interstitial lines), and image processing techniques coded in Matlab (R2020b) for measurement and visualization.
 
 ![alt text](https://github.com/Sutadasuto/concrete_analysis/blob/main/output_example.png?raw=true)

@@ -55,6 +55,8 @@ Notice that each time that Python is required to process an image, both the imag
 
 The Matlab figure contains 6 subplots distributed in 2 rows and 3 columns. Each subplot shows measurements derived from the detected interstitial lines (i.e. lines separating two printed layers).
 
+These calculations are done by the function "analyze.m"; any variable mentioned in this section is accessible from within that function.
+
 ### Subplot 1,1
 This plot shows the input image along with the interstitial lines detected by the neural network in green, and detected anomalies in red. The title shows the estimated global orientation of the interstitial lines.
 * Interstitial lines are stored in the variable 'grayImage'

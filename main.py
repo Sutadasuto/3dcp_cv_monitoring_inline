@@ -1,16 +1,12 @@
 import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()  # Disable eager execution to avoid conflicts with the encoder-decoder architecture
 
 import argparse
 import cv2
 import numpy as np
 import os
-import re
-import time
 
 from distutils.util import strtobool
-from tensorflow.keras.models import model_from_json
-from json.decoder import JSONDecodeError
 from util import *
 
 import data
@@ -18,12 +14,8 @@ import data
 from models.available_models import get_models_dict
 
 import socket
-import sys
 
-import multiprocessing
-from queue import LifoQueue
-
-
+# A brief natural language dictionary for socket communication between Matlab and Python
 tcp_dic = {
     -1: "finish",
     0: "matlab_waiting",
@@ -32,12 +24,13 @@ tcp_dic = {
     3: "no_more_frames"
 }
 
+# Used to create neural network architecture
 models_dict = get_models_dict()
 
 
 def main(args):
     max_res = args.max_res
-    parameters = get_parameters(args)
+    parameters = get_parameters(args) # Get video source, network weights, and localhost port
     
     print("Preparing neural network")
     if not args.gpu:
@@ -48,61 +41,33 @@ def main(args):
         config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     input_size = (None, None)
-
     model = models_dict["uvgg19"]((input_size[0], input_size[1], 1))
     rgb_preprocessor = data.get_preprocessor(model)
     model.load_weights(parameters["weights_path"])
 
     print("Setting video input")
-    # vdo, source_fps, using_camera, stream = set_camera(parameters["video_path"], 30)
     vdo, source_fps, using_camera = set_camera(parameters["video_path"], 30)
-    # using_camera = True
-    # stream = cv2.VideoCapture(0)
-    # stream.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
-    # queue_from_cam = multiprocessing.Queue(maxsize=1)
-    # queue_from_cam = LifoQueue()
-    # grabbed = False
-    #
-    # def cam_loop(queue_from_cam):
-    #     global grabbed
-    #     print('initializing cam')
-    #     cap = cv2.VideoCapture(0)
-    #     while True:
-    #         if queue_from_cam.full():
-    #             with queue_from_cam.mutex:
-    #                 queue_from_cam.queue.clear()
-    #         grabbed, img = cap.read()
-    #         queue_from_cam.put(img)
-    #         time.sleep(1/1.5*cap.get(cv2.CAP_PROP_FPS))
-    #
-    # cam_process = multiprocessing.Process(target=cam_loop, args=(queue_from_cam,))
-    # cam_process.start()
-    # using_camera = True
-    # source_fps = 25
-    #
-    # print("bliu")
-    # ori_im = queue_from_cam.get()
-
+    # Test camera or input source
     grabbed, ori_im = vdo.read()
     if not grabbed:
         raise RuntimeError("Unable to read first frame from video input.")
 
     print("Waiting for a connection")
+    # Create TCP server
     server_address = ('localhost', parameters["localhost"])
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(server_address)
+    # Server ready, waiting for communication from Matlab
     sock.listen(1)
     try:
         connection, client_address = sock.accept()
         print("Connection ready. Start!")
     except:
         sock.close()
-    listener = TCPReceiver(connection, tcp_dic).start()
+    listener = TCPReceiver(connection, tcp_dic).start()  # Put TCP listening in a different thread to don't stop the workflow
+    # Begin the infinite loop for reading and processing images
     while True:
-
         grabbed, ori_im = vdo.read()
-
         if not grabbed:
             print("No frame grabbed.")
             status = 3
@@ -112,12 +77,13 @@ def main(args):
         input_message = listener.current_status
         if input_message is None:
             if not using_camera:
-                time.sleep(1/source_fps)
+                time.sleep(1/source_fps)  # Use a delay to emulate real-time acquisition
             continue
 
         status = 0
         if tcp_dic[input_message] == "matlab_waiting":
             listener.current_status = None
+            # Resize image if needed to fit to max_res
             if ori_im.shape[1] > max_res:
                 scale_factor = max_res/ori_im.shape[1]
                 ori_im = cv2.resize(ori_im,
@@ -126,7 +92,8 @@ def main(args):
                                         round(scale_factor * ori_im.shape[0])
                                     )
                                     )
-            ori_im = data.manual_padding(ori_im, n_pooling_layers=4)
+            ori_im = data.manual_padding(ori_im, n_pooling_layers=4) # To avoid dimension match issues during prediction
+            # Predict input image an save it along with its prediction
             prediction = model.predict(
                 rgb_preprocessor(cv2.cvtColor(ori_im, cv2.COLOR_BGR2RGB))[None, ...], verbose=1)[0, ...]
             cv2.imwrite(os.path.join("tmp", "img.jpg"), ori_im)
@@ -137,13 +104,14 @@ def main(args):
             break
         else:
             if not using_camera:
-                time.sleep(1/source_fps)
+                time.sleep(1/source_fps)  # Use a delay to emulate real-time acquisition
 
-        connection.sendall(status.to_bytes(1, "big"))
+        connection.sendall(status.to_bytes(1, "big"))  # Tell Matlab the images have been written
 
     if using_camera:
-        vdo.stop()
+        vdo.stop()  # Close camera properly before finishing the program
 
+    # Be sure to properly clear the socket
     listener.stop()
     connection.close()
     sock.close()
@@ -164,6 +132,7 @@ def parse_args(args=None):
     return args_dict
 
 
+# Run the script
 if __name__ == "__main__":
-    args = parse_args()
-    main(args)
+    args = parse_args()  # Parse user arguments
+    main(args)  # Run main function with user arguments

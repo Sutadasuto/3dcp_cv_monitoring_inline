@@ -1,3 +1,3 @@
-video_path, 0
-weights_path, /media/shared_storage/google-drive/ESIEE/Thesis/Year_2/results_weakly_supervision/results_march_concrete/results_concrete_uvgg19_corrected/results_training_min_val_loss/uvgg19_best.hdf5
+video_path, video.MOV
+weights_path, weights.hdf5
 localhost, 30000

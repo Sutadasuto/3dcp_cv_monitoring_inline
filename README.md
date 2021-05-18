@@ -19,8 +19,8 @@ Similarly, in the same file you can choose the video source. You can choose a vi
 
 Next we share links to both a sample input video and the current neural network weights.
 
-Link video
-Link weights
+* Link video: https://drive.google.com/file/d/1EfY37ipjub7DKIei8upSQ5h3AwislnjK/view?usp=sharing
+* Link weights: https://drive.google.com/file/d/1qHm2XbXgazFARGi8-UbHfI19mBFNlv1q/view?usp=sharing
 
 To run the tool, you must first begin the python process by running:
 ```

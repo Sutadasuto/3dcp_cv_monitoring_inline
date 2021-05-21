@@ -37,9 +37,11 @@ while true
         write(client,"2","int8"); % Matlab tells to Python that it is analyzing the image
         disp("Processing new image. Full analysis")
         try
+            tic
             inputImg = fullfile('tmp', 'img.jpg'); 
             segmentationPath = strrep(inputImg,'.jpg','_gt.png');
             analyze(inputImg, segmentationPath, f); % This is the function used to make all the measurements. The variables as explained in the README file are calculated here.
+            toc
         catch
             disp("Analysis error. Skipping frame")
         end

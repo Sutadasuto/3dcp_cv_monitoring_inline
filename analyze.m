@@ -3,7 +3,7 @@ function analyze(inputImg, segmentationPath, f)
 dRes = 2; % The step resolution to calculate angles
 splineStep = 20; % The step resolution to calculate splines from interstitial lines
 
-tic
+% tic
 rgbImage = imread(segmentationPath); % Read the predictions from Python
 grayImage = rgbImage(:,:,1); % Be sure that the predictions are single channel
 
@@ -151,7 +151,7 @@ SE = strel('line', 3, 90);
 disLines = imdilate(filteredSkeleton, SE);
 mask = max(im2double(grayImage), disLines);
 dHsv = cat(3,disLines.*imdilate(2*(disSkeleton.*realDistances)/(round(h/4)), SE), mask, mask);
-toc
+% toc
 
 %%%
 % Texture features
@@ -209,7 +209,7 @@ for ii = 1:NN
         disp(e.message)
     end
 end
-toc
+% toc
 
 % Local binary pattern transform
 % radiusRange = 1:5;
@@ -229,7 +229,7 @@ toc
 
 
 % Display all the results
-tic
+% tic
 % clf(f);
 set(gcf,'name',inputImg,'numbertitle','off')
 
@@ -278,7 +278,7 @@ colorbar;
 set(h3, 'Position', originalSize);
 
 set(h0, 'Colormap', hot);
-toc
+% toc
 
 end
 

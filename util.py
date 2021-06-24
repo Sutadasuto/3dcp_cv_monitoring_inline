@@ -184,27 +184,34 @@ def set_camera(video_input, buffer_size=1):
     vdo = cv2.VideoCapture()
     using_camera = False
     stream = None
+    
+    try:
+        device_id = int(video_input)
+        device = True
+    except ValueError:
+        device = False
+        
+    if not device:    
 
-    if os.path.isfile(video_input):
-        try:
-            vdo.open(video_input)
-        except IOError:
-            raise IOError("%s is not a valid video file." % video_input)
-        source_fps = vdo.get(cv2.CAP_PROP_FPS)
-    elif os.path.isdir(video_input):
-        source_fps = 29.7
-        format_str = sorted([f for f in os.listdir(video_input)
-                             if os.path.isfile(os.path.join(video_input, f))
-                             and not f.startswith('.') and not f.endswith('~')], key=lambda f: f.lower())[0]
-        numeration = re.findall('[0-9]+', format_str)
-        len_num = len(numeration[-1])
-        format_str = format_str.replace(numeration[-1], "%0{}d".format(len_num))
-        vdo.open(os.path.join(video_input, format_str))
+        if os.path.isfile(video_input):
+            try:
+                vdo.open(video_input)
+            except IOError:
+                raise IOError("%s is not a valid video file." % video_input)
+            source_fps = vdo.get(cv2.CAP_PROP_FPS)
+        elif os.path.isdir(video_input):
+            source_fps = 29.7
+            format_str = sorted([f for f in os.listdir(video_input)
+                                 if os.path.isfile(os.path.join(video_input, f))
+                                 and not f.startswith('.') and not f.endswith('~')], key=lambda f: f.lower())[0]
+            numeration = re.findall('[0-9]+', format_str)
+            len_num = len(numeration[-1])
+            format_str = format_str.replace(numeration[-1], "%0{}d".format(len_num))
+            vdo.open(os.path.join(video_input, format_str))
     else:
         try:
-            device_id = int(video_input)
-            using_camera = True
             vdo = DeviceVideoStream(device_id, buffer_size).start()
+            using_camera = True
             # source_fps = stream.stream.get(cv2.CAP_PROP_FPS)
             # stream = VideoCapture(device_id)
             # stream = VideoGet(device_id).start()

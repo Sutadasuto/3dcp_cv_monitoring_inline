@@ -38,8 +38,8 @@ while true
         disp("Processing new image. Full analysis")
         try
             tic
-            inputImg = fullfile('tmp', 'img.jpg'); 
-            segmentationPath = strrep(inputImg,'.jpg','_gt.png');
+            inputImg = fullfile('tmp', 'img.png'); 
+            segmentationPath = strrep(inputImg,'.png','_gt.png');
             analyze(inputImg, segmentationPath, f); % This is the function used to make all the measurements. The variables as explained in the README file are calculated here.
             toc
         catch

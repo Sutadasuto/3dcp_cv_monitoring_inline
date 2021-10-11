@@ -96,7 +96,7 @@ def main(args):
             # Predict input image an save it along with its prediction
             prediction = model.predict(
                 rgb_preprocessor(cv2.cvtColor(ori_im, cv2.COLOR_BGR2RGB))[None, ...], verbose=1)[0, ...]
-            cv2.imwrite(os.path.join("tmp", "img.jpg"), ori_im)
+            cv2.imwrite(os.path.join("tmp", "img.png"), ori_im, [cv2.IMWRITE_PNG_COMPRESSION, 0])
             cv2.imwrite(os.path.join("tmp", "img_gt.png"), 255*np.where(prediction > 0.5, 1.0, 0.0))
             status = 1
         elif tcp_dic[input_message] == "finish":

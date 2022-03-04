@@ -5,6 +5,7 @@ import argparse
 import cv2
 import numpy as np
 import os
+import subprocess
 
 from distutils.util import strtobool
 from util import *
@@ -17,6 +18,7 @@ import socket
 
 # A brief natural language dictionary for socket communication between Matlab and Python
 tcp_dic = {
+    None: "none",
     -1: "finish",
     0: "matlab_waiting",
     1: "writing_ready",
@@ -56,6 +58,7 @@ def main(args):
     # Create TCP server
     server_address = ('localhost', parameters["localhost"])
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(server_address)
     # Server ready, waiting for communication from Matlab
     sock.listen(1)
@@ -67,15 +70,24 @@ def main(args):
     listener = TCPReceiver(connection, tcp_dic).start()  # Put TCP listening in a different thread to don't stop the workflow
     # Begin the infinite loop for reading and processing images
     while True:
-        grabbed, ori_im = vdo.read()
+        input_message = listener.current_status
+        if using_camera:
+            grabbed, ori_im = vdo.read()
+        else:
+            if not args.from_file_real_time:
+                if tcp_dic[input_message] == "matlab_waiting":
+                    grabbed, ori_im = vdo.read()
+            else:
+                grabbed, ori_im = vdo.read()
+
         if not grabbed:
             print("No frame grabbed.")
             status = 3
             connection.sendall(status.to_bytes(1, "big"))
             break
 
-        input_message = listener.current_status
         if input_message is None:
+            # if not using_camera and args.from_file_real_time:
             if not using_camera:
                 time.sleep(1/source_fps)  # Use a delay to emulate real-time acquisition
             continue
@@ -103,10 +115,18 @@ def main(args):
             print("Finish instruction received from Matlab")
             break
         else:
+            # if not using_camera and args.from_file_real_time:
             if not using_camera:
-                time.sleep(1/source_fps)  # Use a delay to emulate real-time acquisition
+                if not args.from_file_real_time:
+                    time.sleep(1/source_fps)  # Use a delay to emulate real-time acquisition
+                else:
+                    time.sleep(5)  # Without delay, the sockets desynchronize
 
-        connection.sendall(status.to_bytes(1, "big"))  # Tell Matlab the images have been written
+        connection.sendall(status.to_bytes(1, "big"))  # Tell Matlab the images have been written (or not)
+        if status == 1:
+            command = "python texture/classify.py"
+            subprocess.run(command, shell=True)
+
 
     if using_camera:
         vdo.stop()  # Close camera properly before finishing the program
@@ -122,6 +142,7 @@ def parse_args(args=None):
     parser.add_argument("--parameters_file", type=str, default="config")
     parser.add_argument("--max_res", type=int, default=1280)
     parser.add_argument("--gpu", type=str, default=True)
+    parser.add_argument("--from_file_real_time", type=str, default=False)
 
     args_dict = parser.parse_args(args)
     for attribute in args_dict.__dict__.keys():

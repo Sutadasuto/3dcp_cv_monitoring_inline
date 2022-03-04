@@ -3,3 +3,5 @@ __pycache*
 /tmp_debug
 /*.hdf5
 /*.MOV
+/*.png
+/*.tiff

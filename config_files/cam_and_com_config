@@ -1,0 +1,3 @@
+video_path, I3DCP_demo_mini
+weights_path, uvgg19_interlayer_segmentation.hdf5
+localhost, 30000

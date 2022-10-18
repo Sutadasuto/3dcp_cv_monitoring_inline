@@ -51,3 +51,26 @@ def get_preprocessor(model):
         return getattr(m, "preprocess_input")
     except ModuleNotFoundError:
         return None
+
+
+# Image generators
+def get_image(im_path):
+    im = cv2.cvtColor(cv2.imread(im_path), cv2.COLOR_BGR2RGB)
+
+    im = manual_padding(im, n_pooling_layers=4)
+    if len(im.shape) == 2:
+        im = im[..., None]  # Channels last
+    return im
+
+
+def test_image_from_path(model, input_path, rgb_preprocessor=None, verbose=0):
+    if rgb_preprocessor is None:
+        rgb_preprocessor = get_preprocessor(model)
+    rgb = True if rgb_preprocessor else False
+    if rgb:
+        prediction = model.predict(rgb_preprocessor(get_image(input_path))[None, ...])[0, ...]
+    else:
+        prediction = model.predict(get_image(input_path))
+
+    input_image = cv2.cvtColor(get_image(input_path), cv2.COLOR_BGR2GRAY)[..., None] / 255.0
+    return [input_image, prediction]

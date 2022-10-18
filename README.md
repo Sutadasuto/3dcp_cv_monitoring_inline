@@ -1,96 +1,54 @@
-# Tool for 3D printed concrete analysis
-Tool for real-time monitoring of concrete 3D printing. It combines a fully-convolutional neural network coded in Python (3.7.8) using Tensorflow (2.1.0) for feature extraction (detection of interstitial lines), and image processing techniques coded in Matlab (R2020b) for measurement and visualization.
+# Inline monitoring of 3D concrete printing
+This repository provides an extension of the code presented at: https://github.com/Sutadasuto/3dcp_cv_monitoring
 
-![alt text](https://github.com/Sutadasuto/concrete_analysis/blob/main/output_example.png?raw=true)
+In this version, you can perform the analysis in a continuous loop. If you use this tool in your work, kindly cite the following paper:
+```
+@article{RILLGARCIA2022103175,
+title = {Inline monitoring of 3D concrete printing using computer vision},
+journal = {Additive Manufacturing},
+volume = {60},
+pages = {103175},
+year = {2022},
+issn = {2214-8604},
+doi = {https://doi.org/10.1016/j.addma.2022.103175},
+url = {https://www.sciencedirect.com/science/article/pii/S2214860422005644},
+author = {Rodrigo Rill-García and Eva Dokladalova and Petr Dokládal and Jean-François Caron and Romain Mesnil and Pierre Margerit and Malo Charrier},
+}
+```
 
-## Requirements
-
-### Python
-The current tool was developed and tested using Python 3.7.8, opencv 4.4.0 and Tensorflow 2.1.0. For commodity, a conda environment.yml file is provided to replicate the environment.
-
-### Matlab
-The current tool was developed and tested using Matlab R2020b with the Image Processing Version 11.2.
+## Software requirements
+The current repository uses Python and Matlab code.
+Regarding the Python setup, an 'environment.yml' file is provided to replicate the conda environment used for testing.
+The Python environment is used to build the interlayer segmentation and the texture classification networks on Tensorflow 2.
+Regarding the Matlab code, it was tested on the 2020b version; it uses the image and the curve fitting toolboxes. The Matlab script performs the geometrical characterization.
 
 ## How to run
 
-Matlab and Python communicate using TCP/IP sockets through local host. You can change the port at the "config" file (the number after 'localhost, ').
+Matlab and Python communicate using TCP/IP sockets through local host. You can change the port at the "config_files/cam_and_com_config" file (the number after 'localhost, ').
 
-Similarly, in the same file you can choose the video source. You can choose a video input device (an integer number; usually 0 if using an integrated webcam) or a saved video file (a string; e.g. /path/to/video.MOV). Finally, you can and must specify the path to a file containing the pre-trained weights of the fully-convolutional neural network.
+Similarly, in the same file you can choose the video source. You can choose a video input device (an integer number; usually 0 if using an integrated webcam) or a folder containing only images (a string). By default, this argument is set to "I3DCP_demo_mini", a folder containing some sample images from the I3DCP dataset (https://github.com/Sutadasuto/I3DCP). Notice that the image names are numbered; you should follow this patter when using your own data.
 
-Next we share links to both a sample input video and the current neural network weights.
+Finally, you must specify the path to a file containing the pre-trained weights of the fully-convolutional neural network. By default, this path is set to "uvgg19_interlayer_segmentation.hdf5", meaning that the file is at the root of the project. We provide this file in zip parts.
 
-* Link video: https://drive.google.com/file/d/1EfY37ipjub7DKIei8upSQ5h3AwislnjK/view?usp=sharing
-* Link weights: https://drive.google.com/file/d/1qHm2XbXgazFARGi8-UbHfI19mBFNlv1q/view?usp=sharing
 
 To run the tool, you must first begin the python process by running:
 ```
 python main.py
 ```
 
-This script has two optional arguments: 
-* 'max_res' allows you to resize input images so that the image width is reduced to this (integer) number. The default value is 1280 (high-resolution).
-* 'gpu' allows you to choose if you want to use a GPU for feature extraction (specially useful for machines without an integrated GPU). The default value is True (use False to disable GPU use).
-
-To run the tool, for example, with a maximum horizontal resolution of 512 pixels using CPU instead of GPU you should run:
-```
-python main.py --max_res 512 --gpu False
-```
+This script has an optional arguments: 'gpu' allows you to choose if you want to use a GPU (specially useful for machines without an integrated GPU). The default value is True (use False to disable GPU use).
 
 Let the program run until the console prints "Waiting for a connection". This means Python is set up and ready to communicate with Matlab to begin the analysis.
 
 In Matlab, you just need to run "main.m". Once Matlab has communicated with Python, the Matlab console will show a tcpclient variable and the Python console will print "Connection ready. Start!".
 
-The expected output should like the above image. The tool will keep running until one of the next finishing conditions is met:
-
-* (If analyzing a stored video) Python has read the last frame from the video
-* An acquisition error occurred
-* The user closes the analysis user interface
-
-Notice that each time that Python is required to process an image, both the image and the output of the neural network are saved at "tmp". Below, there is an example of input image and its corresponding output:
-
-![alt text](https://github.com/Sutadasuto/concrete_analysis/blob/main/tmp/img.jpg?raw=true)
-![alt text](https://github.com/Sutadasuto/concrete_analysis/blob/main/tmp/img_gt.png?raw=true)
+We include a tutorial video, which also shows the expected outputs ("quick_demo.mkv").
 
 ## User interface
 
-The Matlab figure contains 6 subplots distributed in 2 rows and 3 columns. Each subplot shows measurements derived from the detected interstitial lines (i.e. lines separating two printed layers).
+Per analyzed frame/image, the present tool will produce local measurements about the geometry and texture of the observed piece. The geometry measures correspond to the orientation and curvature of the interlayer lines, the width of the printed layers, and the distance of the printing nozzle with respect to the last printed layer (for furhter information about these measurements and the properties of the expected input image, please refer to the article). The texture measurements are used to provide a region-wise classification of the observed material, either good or one of three anomalous classes: fluid, dry or tearing (for further information about these classes, please refer to the article). Once the measures are obtained, one histogram per each one of them is calculated.
 
-These calculations are done by the function "analyze.m"; any variable mentioned in this section is accessible from within that function.
+Two windows are shown during execution: one for the geometrical measurement and texture classification, and one for their corresponding histograms:
 
-### Subplot 1,1
-This plot shows the input image along with the interstitial lines detected by the neural network in green, and detected anomalies in red. The title shows the estimated global orientation of the interstitial lines.
-* Interstitial lines are stored in the variable 'grayImage'
-* Errors are detected as interstitial line segments with a local orientation far from the estimated global orientation (see 'Subplot 1,3' for more info on global and local orientation). These defects are stored in the variable 'defects' 
-* Global orientation is stored in the variable 'globalOrientation'
-
-### Subplot 1,2
-This plot shows the local granulometry (https://fr.mathworks.com/help/images/granulometry-of-snowflakes.html) in subregions contained between interstitial lines. Per region, only the most frequent grain size (the mode) is displayed.
-* The mode of grain size per region is stored in the variable 'grainSize' (consider that any region that is not part of an interstitial line has a default value of 0)
-
-### Subplot 1,3
-This plot shows the local orientation of the different interstitial line segments. The orientation is measured as an angle using a conventional XY coordinate system with origin at the bottom left corner of the image.
-
-The local orientation is determined by comparing the filter responses of a given segment to a set of oriented filters. The orientation of the oriented filter with the greatest response in a given region is chosen as the local orientation. With this reasoning, the global orientation corresponds to the orientation of the filter with the greatest response over the whole image.
-* The local orientations are stored in the variable 'theta' (consider that any region that is not part of an interstitial line has a default value of 0)
-
-### Subplot 2,1
-This plot shows the raw input image.
-* This image is stored at the variable 'photo'
-
-### Subplot 2,2
-This subplot shows the estimated thicknesses of the layers contained between two interstitial lines.
-
-This value is calculated with the help of the distance function (https://fr.mathworks.com/help/images/ref/bwdist.html) calculated over the morphological skeleton of the interstitial lines in 'grayImage'. Since the value calculated by the distance function is a radius, the value shown in the plot is twice the value in the distance function (i.e. diameter instead of radius).
-
-For clarity purposes, the lines shown in the plot correspond to the skeleton of the distance function output (the skeleton must preserve the pixels with the highest values). 
-Additionally, interstitial lines are shown with a value of 0 (for localization purposes).
-
-* The morphological skeleton of the interstitial lines is stored in the variable 'skeleton'
-* The output of the distance function is stored in the variable 'realDistances'
-* The skeleton of the distance function output is stored in the variable 'filteredSkeleton'
-
-### Subplot 2,3
-This plot shows the approximate estimated local curvatures of the interstitial lines. The sign of the curvature determines of the line is concave (positive) or convex (negative) with respect to the horizontal axis.
-
-Interstitial lines are first approximated as continuous (i.e. non-discrete) cubic splines and then local curvatures are calculated in terms of general parametrization (https://en.wikipedia.org/wiki/Curvature#In_terms_of_a_general_parametrization).
-* The local curvatures are stored in the variable 'rMap' (consider that any region that is not part of an interstitial line has a default value of 0)
+![alt text](https://github.com/Sutadasuto/3dcp_cv_monitoring_inline/blob/main/results/plots.png?raw=true)
+![alt text](https://github.com/Sutadasuto/3dcp_cv_monitoring_inline/blob/main/results/histograms.png?raw=true)

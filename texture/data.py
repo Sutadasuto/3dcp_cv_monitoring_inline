@@ -1,13 +1,13 @@
 import os
 
-from lbp_tools import *
-from glcm_tools import *
+from texture.lbp_tools import *
+from texture.glcm_tools import *
 
 
 def calculate_features(photo_dir, **kwargs):
     img_names = sorted([f for f in os.listdir(photo_dir)
                         if not f.startswith(".") and os.path.isfile(os.path.join(photo_dir, f))
-                        and not f == "matlab_flag"],
+                        and not f == "matlab_flag" and not f == "python_flag" and not f.endswith(".csv")],
                        key=lambda f: f.lower())
 
     # GLCM parameters
@@ -58,7 +58,11 @@ def delete_black_regions(img):
             last_row = row + 1
             break
 
-    binary_image = binary_image[first_row:last_row, :]
+    try:
+        binary_image = binary_image[first_row:last_row, :]
+    except UnboundLocalError:
+        print("Failed to calculate maximum container box. Returning half size centered box instead")
+        return img[int(h/4):int(3*h/4), int(w/4):int(3*w/4)]
     h, w = binary_image.shape
 
     for col in range(w):

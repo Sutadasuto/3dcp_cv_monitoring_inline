@@ -70,64 +70,64 @@ class DeviceVideoStream:
         # indicate that the thread should be stopped
         self.stopped = True
 
-
-class VideoCapture:
-
-    def __init__(self, name):
-        self.stream = cv2.VideoCapture(name)
-        self.q = queue.Queue()
-        self.stopped = False
-        t = Thread(target=self._reader)
-        t.daemon = True
-        t.start()
-
-    # read frames as soon as they are available, keeping only most recent one
-    def _reader(self):
-        while True:
-            if self.stopped:
-                return
-            ret, frame = self.stream.read()
-            if not ret:
-                break
-            if not self.q.empty():
-                try:
-                    self.q.get_nowait()  # discard previous (unprocessed) frame
-                except queue.Empty:
-                    pass
-            self.q.put(frame)
-
-    def read(self):
-        return self.q.get()
-
-    def stop(self):
-        # indicate that the thread should be stopped
-        self.stopped = True
-
-
-class VideoGet:
-    """
-    Class that continuously gets frames from a VideoCapture object
-    with a dedicated thread.
-    """
-
-    def __init__(self, src=0):
-        self.stream = cv2.VideoCapture(src)
-        (self.grabbed, self.frame) = self.stream.read()
-        self.stopped = False
-
-    def start(self):
-        Thread(target=self.get, args=()).start()
-        return self
-
-    def get(self):
-        while not self.stopped:
-            if not self.grabbed:
-                self.stop()
-            else:
-                (self.grabbed, self.frame) = self.stream.read()
-
-    def stop(self):
-        self.stopped = True
+#
+# class VideoCapture:
+#
+#     def __init__(self, name):
+#         self.stream = cv2.VideoCapture(name)
+#         self.q = queue.Queue()
+#         self.stopped = False
+#         t = Thread(target=self._reader)
+#         t.daemon = True
+#         t.start()
+#
+#     # read frames as soon as they are available, keeping only most recent one
+#     def _reader(self):
+#         while True:
+#             if self.stopped:
+#                 return
+#             ret, frame = self.stream.read()
+#             if not ret:
+#                 break
+#             if not self.q.empty():
+#                 try:
+#                     self.q.get_nowait()  # discard previous (unprocessed) frame
+#                 except queue.Empty:
+#                     pass
+#             self.q.put(frame)
+#
+#     def read(self):
+#         return self.q.get()
+#
+#     def stop(self):
+#         # indicate that the thread should be stopped
+#         self.stopped = True
+#
+#
+# class VideoGet:
+#     """
+#     Class that continuously gets frames from a VideoCapture object
+#     with a dedicated thread.
+#     """
+#
+#     def __init__(self, src=0):
+#         self.stream = cv2.VideoCapture(src)
+#         (self.grabbed, self.frame) = self.stream.read()
+#         self.stopped = False
+#
+#     def start(self):
+#         Thread(target=self.get, args=()).start()
+#         return self
+#
+#     def get(self):
+#         while not self.stopped:
+#             if not self.grabbed:
+#                 self.stop()
+#             else:
+#                 (self.grabbed, self.frame) = self.stream.read()
+#
+#     def stop(self):
+#         self.stopped = True
 
 
 class TCPReceiver:
@@ -159,10 +159,10 @@ class TCPReceiver:
         self.stopped = True
 
 
-def get_parameters(args):
+def get_parameters(config_file):
     parameters = {}
 
-    with open(args.parameters_file, 'r') as parameters_file:
+    with open(config_file, 'r') as parameters_file:
         lines = parameters_file.read().strip().split('\n')
 
     for line in lines:
@@ -212,13 +212,7 @@ def set_camera(video_input, buffer_size=1):
         try:
             vdo = DeviceVideoStream(device_id, buffer_size).start()
             using_camera = True
-            # source_fps = stream.stream.get(cv2.CAP_PROP_FPS)
-            # stream = VideoCapture(device_id)
-            # stream = VideoGet(device_id).start()
-            # stream = cv2.VideoCapture(device_id)
-            # stream.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             source_fps = vdo.stream.get(cv2.CAP_PROP_FPS)
-            # vdo = stream
         except ValueError:
             raise ValueError(
                 "{} is neither a valid video file, a folder with valid images nor a proper device id.".format(
